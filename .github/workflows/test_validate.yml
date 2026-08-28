@@ -1,0 +1,25 @@
+# E2 — the first bundle command in CI. One thing changed from E1: the job
+# checks the repository out, so the runner now has a bundle root, and
+# `bundle validate` resolves the configuration against the workspace.
+name: E2 Validate the bundle
+
+on:
+  pull_request:
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Databricks CLI
+        uses: databricks/setup-cli@v1.13.0
+
+      - name: Validate against the dev target
+        run: databricks bundle validate -t dev
