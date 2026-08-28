@@ -1,0 +1,20 @@
+# E1 — the connection, and nothing else. Two repository secrets become two
+# environment variables, and every Databricks CLI command in this job is
+# authenticated. There is no checkout: authentication needs no repository.
+name: E1 Who does CI run as
+
+on: workflow_dispatch
+
+jobs:
+  whoami:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - name: Install the Databricks CLI
+        uses: databricks/setup-cli@v1.13.0
+
+      - name: Ask the workspace who this token belongs to
+        run: databricks current-user me -o json | jq -r .userName
