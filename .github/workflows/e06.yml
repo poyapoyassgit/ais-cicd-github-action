@@ -1,0 +1,51 @@
+# E6 — what a run leaves behind. A workflow's outputs are files on a machine
+# that is destroyed when the job ends; `actions/upload-artifact` is how those
+# files survive the runner and reach a person on the pull request.
+#
+# Here the artefact carries the test report and the EDA figures. Both are
+# produced from the fixture the tests use, so this evidence describes the
+# CODE, not this morning's data — for that, see E7.
+name: E6 Artefacts
+
+on:
+  pull_request:
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install
+        run: pip install -r requirements-dev.txt
+
+      - name: Suite, with a report
+        env:
+          M7_REQUIRE_SPARK: "1"
+        run: >
+          pytest -q
+          --junitxml=reports/junit.xml
+
+      # PYTHONPATH=src, because pytest.ini's pythonpath applies to pytest
+      # only — a plain python -m has to be told where the package lives.
+      - name: The EDA figures
+        run: >
+          PYTHONPATH=src python -m rfm
+          --out reports/eda
+
+      # if: always() — a failed run is exactly when the report is wanted.
+      - name: Keep them
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rfm-report
+          path: reports/
+          retention-days: 14
