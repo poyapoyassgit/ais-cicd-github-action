@@ -1,0 +1,55 @@
+# The deployed pipeline: build, then the two test levels that need real data.
+#
+# Levels 1 and 2 (unit, transformation) run on the GitHub runner against
+# fixtures — they need no workspace and no data. Levels 3 and 4 can only be
+# established against the table the build task just wrote, so they are tasks
+# of the job itself: Write-Audit-Publish, with the audits failing the run.
+
+resources:
+  jobs:
+    rfm:
+      name: rfm_pipeline
+
+      tasks:
+        - task_key: build
+          existing_cluster_id: ${var.cluster_id}
+          notebook_task:
+            # Relative to THIS file (Module 5's rule), so ../src.
+            notebook_path: ../src/build_rfm.py
+            base_parameters: &params
+              catalog: ${var.catalog}
+              schema: ${var.schema}
+              # One person, one suffix — the same identity DAB derives for
+              # the dev target's paths, so nobody overwrites anybody.
+              table_suffix: ${workspace.current_user.short_name}
+              # Where the deployed tree landed, so the notebooks can import
+              # rfm/ — the same package the tests import.
+              bundle_root: ${workspace.file_path}
+
+        - task_key: data_quality
+          depends_on:
+            - task_key: build
+          existing_cluster_id: ${var.cluster_id}
+          notebook_task:
+            notebook_path: ../src/audit_quality.py
+            base_parameters: *params
+
+        - task_key: model_validation
+          depends_on:
+            - task_key: data_quality
+          existing_cluster_id: ${var.cluster_id}
+          notebook_task:
+            notebook_path: ../src/audit_model.py
+            base_parameters: *params
+
+        # Records rather than asserts: parameters, metrics and figures into
+        # one MLflow run, so a person can compare this deployment with the
+        # last one. It runs only after both audits pass, so nothing is
+        # recorded about a table the pipeline has already rejected.
+        - task_key: eda_report
+          depends_on:
+            - task_key: model_validation
+          existing_cluster_id: ${var.cluster_id}
+          notebook_task:
+            notebook_path: ../src/eda_report.py
+            base_parameters: *params

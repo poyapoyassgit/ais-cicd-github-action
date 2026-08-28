@@ -1,0 +1,7 @@
+line-length = 100
+# The notebooks are executed by Databricks, which injects these names.
+builtins = ["dbutils", "spark", "display", "sc"]
+
+[lint.per-file-ignores]
+# Notebook cells import after the widgets are read, which is deliberate.
+"src/*.py" = ["E402"]

@@ -1,0 +1,11 @@
+pytest==8.2.0
+pyspark==3.5.4
+pandas==2.2.3
+numpy==1.26.4
+ruff==0.6.9
+matplotlib==3.9.2
+
+# mlflow is deliberately NOT here. Nothing on the runner imports it: only
+# src/eda_report.py does, and that notebook runs on the Databricks Runtime,
+# where mlflow and matplotlib are already installed. Adding it would cost
+# every CI run a large download for a package the runner never loads.
