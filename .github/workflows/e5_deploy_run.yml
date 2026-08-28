@@ -16,6 +16,10 @@ jobs:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
 
+    defaults:
+      run:
+        working-directory: bundle
+
     steps:
       - uses: actions/checkout@v4
 
