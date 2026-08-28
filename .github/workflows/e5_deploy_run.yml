@@ -1,0 +1,29 @@
+# E5 — deploy, then run what was deployed. `bundle run` starts the deployed
+# job and blocks until the run terminates, so the workflow's verdict is the
+# run's verdict: a failed Databricks run is a red workflow.
+name: E5 Deploy and run
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+jobs:
+  deploy_and_run:
+    runs-on: ubuntu-latest
+    env:
+      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+      DATABRICKS_TOKEN: ${{ secrets.DATABRICKS_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install the Databricks CLI
+        uses: databricks/setup-cli@v1.13.0
+
+      - name: Deploy the committed state
+        run: databricks bundle deploy -t dev
+
+      - name: Run the deployed job
+        run: databricks bundle run rfm -t dev
