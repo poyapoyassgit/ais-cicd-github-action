@@ -1,0 +1,37 @@
+# E3 — the test suite on the runner. Four levels, one command.
+#
+# Levels 1 and 2 (unit, transformation) and the fixture-based proofs of
+# levels 3 and 4 all run here: they need Python and Spark, but no workspace,
+# no credentials and no data. That is why this job carries no secrets.
+name: E3 Tests
+
+on:
+  pull_request:
+    paths-ignore: ["**/*.md"]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    env:
+      # A runner that silently skipped the Spark levels would be a gate that
+      # proves less than it appears to. conftest.py skips them when no JVM is
+      # present; this turns the skip back into a failure.
+      M7_REQUIRE_SPARK: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install the test dependencies
+        run: pip install -r requirements-dev.txt
+
+      - name: Level 1 — unit tests, no Spark
+        run: pytest -q -m "not spark"
+
+      - name: Levels 2 to 4 — Spark transformations, quality, model
+        run: pytest -q -m spark
